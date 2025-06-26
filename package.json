@@ -2,13 +2,13 @@
   "name": "files-service",
   "version": "1.0.0",
   "description": "files-service",
-  "main": "index.js",
+  "main": "server.js",
   "author": "eooce",
   "repository": "",
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "axios": "latest",
