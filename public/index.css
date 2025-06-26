@@ -1,0 +1,239 @@
+body {
+    background: #f7f8fa;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 57rem;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 32px 24px;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.5rem;
+    color: #0e8c8c;
+    margin-top: -10px;
+}
+
+.card-upload {
+    height: 5rem;
+    width: 60%;
+    min-width: 320px;
+    max-width: 500px;
+    margin: 0 auto 32px auto;
+    background: #f2f6fc;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+}
+
+.upload-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.upload-form input[type="file"] {
+    flex: 1;
+}
+
+.upload-form button {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.upload-form button:hover {
+    background: #1565c0;
+}
+
+.file-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    width: 50%;
+    min-width: 320px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.file-list-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    flex: 1;
+}
+
+.refresh-btn {
+    height: 2rem;
+    margin-right: -3rem;
+    background: #43a047;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 16px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-left: 16px;
+}
+
+.refresh-btn:hover {
+    background: #388e3c;
+}
+
+.table-wrapper {
+    width: 100%;
+    margin: 0 auto;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+th, td {
+    border: 1px solid #e0e0e0;
+    padding: 10px 8px;
+    text-align: left;
+}
+
+th {
+    background: #e3eafc;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background: #f7fafd;
+}
+
+tr:hover {
+    background-color: #f5f5f5;
+}
+
+.delete-btn {
+    color: #e53935;
+    cursor: pointer;
+    font-weight: 500;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    transition: color 0.2s;
+}
+
+.delete-btn:hover {
+    color: #b71c1c;
+    text-decoration: underline;
+}
+
+.file-link {
+    word-break: break-all;
+}
+
+.progress-container {
+    width: 60%;
+    min-width: 320px;
+    max-width: 500px;
+    margin: 10px auto 15px auto;
+    background-color: #e3eafc;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(25,118,210,0.08);
+    position: relative;
+    display: block;
+    height: 28px;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 28px;
+    background-color: #0291ff;
+    text-align: center;
+    line-height: 28px;
+    color: white;
+    font-weight: 500;
+    transition: width 0.3s;
+    border-radius: 6px 0 0 6px;
+    margin-right: 90px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1;
+}
+
+.cancel-btn {
+    background: #e53935;
+    color: #fff;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    padding: 0 20px;
+    height: 28px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    position: absolute;
+    right: 0;
+    top: 0;
+    z-index: 2;
+}
+
+.cancel-btn:hover {
+    background: #b71c1c;
+}
+
+#uploadStatus {
+    margin-top: 8px;
+    min-height: 24px;
+    font-weight: 500;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    .card-upload,
+    .file-list-header {
+        width: 100%;
+        min-width: unset;
+        max-width: unset;
+    }
+    .card-upload {
+        padding: 15px 8px;
+    }
+    .upload-form {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+    .upload-form button {
+        width: 40%;
+        margin: 0 auto;
+    }
+    .refresh-btn {
+        width: 50%;
+        margin: 12px 0 0 0;
+        height: 2.5rem;
+        font-size: 1.1rem;
+    }
+}
