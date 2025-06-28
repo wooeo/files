@@ -9,7 +9,7 @@ const app = express();
 
 const PORT = process.env.PORT || 9999;
 const USERNAME = process.env.USERNAME || 'admin';
-const PASSWOORD = process.env.PASSWOORD || 'lkwn36257@';
+const PASSWOORD = process.env.PASSWOORD || 'admin';
 
 const FILES_DIR = path.join(__dirname, 'files');
 
