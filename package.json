@@ -4,7 +4,7 @@
   "description": "files-service",
   "main": "server.js",
   "author": "eooce",
-  "repository": "",
+  "repository": "https://github.com/eooce/file-service",
   "license": "MIT",
   "private": false,
   "scripts": {
