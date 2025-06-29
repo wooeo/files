@@ -7,30 +7,39 @@ const basicAuth = require('express-basic-auth');
 const iconv = require('iconv-lite');
 const app = express();
 
+app.use(express.json());
+
 const PORT = process.env.PORT || 9999;
 const USERNAME = process.env.USERNAME || 'admin';
 const PASSWOORD = process.env.PASSWOORD || 'admin';
 
 const FILES_DIR = path.join(__dirname, 'files');
 
-// 确保 files 目录存在
-if (!fs.existsSync(FILES_DIR)) {
-    fs.mkdirSync(FILES_DIR);
-    console.log(`Created directory: ${FILES_DIR}`);
+// 确保 files 目录和子目录存在
+function ensureDirectories() {
+    const subdirs = ['videos', 'audios', 'pictures', 'documents', 'others'];
+    
+    if (!fs.existsSync(FILES_DIR)) {
+        fs.mkdirSync(FILES_DIR);
+        console.log(`Created directory: ${FILES_DIR}`);
+    }
+    
+    subdirs.forEach(subdir => {
+        const subdirPath = path.join(FILES_DIR, subdir);
+        if (!fs.existsSync(subdirPath)) {
+            fs.mkdirSync(subdirPath);
+            console.log(`Created subdirectory: ${subdirPath}`);
+        }
+    });
 }
 
-// 安全验证文件名
-function sanitizeFilename(filename) {
-    const decoded = decodeURIComponent(filename);
-    // 防止目录遍历攻击
-    if (decoded.includes('../') || decoded.includes('..\\')) {
-        throw new Error('Invalid filename: path traversal detected');
-    }
-    // 防止空文件名
-    if (!decoded || decoded.trim() === '') {
-        throw new Error('Invalid filename: empty filename');
-    }
-    return decoded;
+ensureDirectories();
+
+// 安全验证多级路径
+function sanitizePath(relPath) {
+    if (!relPath || relPath.trim() === '') throw new Error('Invalid path: empty');
+    if (relPath.includes('..')) throw new Error('Invalid path: path traversal detected');
+    return relPath;
 }
 
 // Basic Auth 配置
@@ -43,48 +52,63 @@ const authMiddleware = basicAuth({
 // 文件存储配置
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, FILES_DIR);
+        const subdir = req.query.subdir;
+        let uploadDir = subdir ? path.join(FILES_DIR, subdir) : FILES_DIR;
+        const relativePath = req.query.relativePath;
+        if (relativePath) {
+            // 去掉文件名部分，只保留目录
+            const relDir = path.dirname(relativePath);
+            uploadDir = path.join(uploadDir, relDir);
+        }
+        try { fs.mkdirSync(uploadDir, { recursive: true }); } catch (e) {}
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         let filename = file.originalname;
-        let rawName = filename;
-    
-        try {
-            // 原始上传可能是 latin1 或 binary 解码成的乱码，尝试还原为 buffer 再用 gbk 解
-            const buffer = Buffer.from(filename, 'latin1'); // 或 'binary'
-            const decoded = iconv.decode(buffer, 'gbk');
-    
-            // console.log('转码后文件名:', decoded);
-            filename = decoded;
-        } catch (e) {
-            console.warn('文件名转码失败:', e.message);
+        const queryFilename = req.query.filename;
+        console.log('query.filename:', queryFilename, '原始名:', file.originalname);
+        if (queryFilename) {
+            try {
+                filename = Buffer.from(queryFilename, 'base64').toString('utf8');
+            } catch (e) {
+                console.warn('文件名base64解码失败:', e.message);
+            }
+        } else {
+            try {
+                const buffer = Buffer.from(filename, 'latin1');
+                filename = iconv.decode(buffer, 'gbk');
+            } catch (e) {
+                console.warn('文件名转码失败:', e.message);
+            }
         }
-    
         cb(null, filename);
-    }    
+    }
 });
 const upload = multer({ storage });
 
 // 获取文件列表
 app.get('/api/files', authMiddleware, (req, res) => {
-    fs.readdir(FILES_DIR, { withFileTypes: true }, (err, files) => {
+    const subdir = req.query.subdir || '';
+    const targetDir = subdir ? path.join(FILES_DIR, subdir) : FILES_DIR;
+    
+    fs.readdir(targetDir, { withFileTypes: true }, (err, files) => {
         if (err) {
             return res.status(500).json({ error: 'Unable to read directory' });
         }
 
         const fileList = files.map(file => {
             let name = file.name;
-            // Windows下如果文件名乱码，尝试GBK转码
-            if (Buffer.isBuffer(name)) {
-                name = iconv.decode(name, 'gbk');
-            }
-            const filePath = path.join(FILES_DIR, name);
+            const filePath = path.join(targetDir, name);
             const stats = fs.statSync(filePath);
+            const isDirectory = file.isDirectory();
+            const relativePath = subdir ? `${subdir}/${name}` : name;
             return {
                 name,
-                size: (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
+                subdir: subdir || '根目录',
+                isDirectory,
+                size: isDirectory ? '' : (stats.size / (1024 * 1024)).toFixed(2) + ' MB',
                 lastModified: stats.mtime,
-                downloadUrl: `${req.protocol}://${req.get('host')}/download/${encodeURIComponent(name)}`
+                downloadUrl: !isDirectory ? `${req.protocol}://${req.get('host')}/download/${encodeURIComponent(relativePath)}` : null
             };
         });
 
@@ -93,20 +117,46 @@ app.get('/api/files', authMiddleware, (req, res) => {
     });
 });
 
+// 获取子目录列表
+app.get('/api/subdirs', authMiddleware, (req, res) => {
+    const subdirs = ['videos', 'audios', 'pictures', 'documents', 'others'];
+    res.json(subdirs);
+});
+
 // 文件直链下载
-app.get('/download/:filename', (req, res) => {
+app.get('/download/*', (req, res) => {
     try {
-        const filename = sanitizeFilename(req.params.filename);
-        const filePath = path.join(FILES_DIR, filename);
+        const relativePath = sanitizePath(req.params[0]);
+        const filePath = path.join(FILES_DIR, relativePath);
         if (fs.existsSync(filePath)) {
-            res.download(filePath, filename, (err) => {
-                if (err) {
-                    console.error('Download error:', err);
-                    if (!res.headersSent) {
-                        res.status(500).send('Download failed');
-                    }
+            const ext = path.extname(filePath).toLowerCase().slice(1);
+            const previewExts = [
+                'jpg','jpeg','png','gif','bmp','webp','svg',
+                'mp4','webm','ogg','mov','m4v','avi',
+                'mp3','wav','aac','flac','m4a',
+                'pdf'
+            ];
+            const mimeTypes = {
+                jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', bmp: 'image/bmp', webp: 'image/webp', svg: 'image/svg+xml',
+                mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg', mov: 'video/quicktime', m4v: 'video/x-m4v', avi: 'video/x-msvideo',
+                mp3: 'audio/mpeg', wav: 'audio/wav', aac: 'audio/aac', flac: 'audio/flac', m4a: 'audio/mp4',
+                pdf: 'application/pdf'
+            };
+            if (previewExts.includes(ext)) {
+                if (mimeTypes[ext]) {
+                    res.setHeader('Content-Type', mimeTypes[ext]);
                 }
-            });
+                res.sendFile(filePath);
+            } else {
+                res.download(filePath, path.basename(filePath), (err) => {
+                    if (err) {
+                        console.error('Download error:', err);
+                        if (!res.headersSent) {
+                            res.status(500).send('Download failed');
+                        }
+                    }
+                });
+            }
         } else {
             res.status(404).send('File not found');
         }
@@ -118,48 +168,107 @@ app.get('/download/:filename', (req, res) => {
 
 // 文件上传
 app.post('/api/upload', authMiddleware, upload.single('file'), (req, res) => {
-    let newName = req.file.originalname;
-
-    if (req.body.filename) {
-        try {
-            // 直接 base64 解码为 utf8
-            newName = Buffer.from(req.body.filename, 'base64').toString('utf8');
-            const oldPath = path.join(FILES_DIR, req.file.filename);
-            const newPath = path.join(FILES_DIR, newName);
-            fs.renameSync(oldPath, newPath);
-        } catch (e) {
-            console.warn('文件名解码失败:', e.message);
-        }
-    }
-
+    const subdir = req.query.subdir;
+    const filename = req.file.filename;
+    const relativePath = subdir ? `${subdir}/${filename}` : filename;
     res.json({
         message: '上传成功',
-        file: newName,
-        downloadUrl: `${req.protocol}://${req.get('host')}/download/${encodeURIComponent(newName)}`
+        file: filename,
+        subdir: subdir || '根目录',
+        downloadUrl: `${req.protocol}://${req.get('host')}/download/${encodeURIComponent(relativePath)}`
     });
 });
 
-
 // 文件删除
-app.delete('/api/files/:filename', authMiddleware, (req, res) => {
+app.delete('/api/files/*', authMiddleware, (req, res) => {
     try {
-        const filename = sanitizeFilename(req.params.filename);
-        const filePath = path.join(FILES_DIR, filename);
-        
+        const relativePath = sanitizePath(req.params[0]);
+        const filePath = path.join(FILES_DIR, relativePath);
         if (fs.existsSync(filePath)) {
-            fs.unlink(filePath, (err) => {
-                if (err) {
-                    console.error('Delete error:', err);
-                    return res.status(500).json({ error: 'Failed to delete file' });
-                }
-                res.json({ message: 'File deleted successfully' });
-            });
+            const stat = fs.statSync(filePath);
+            if (stat.isDirectory()) {
+                // 递归删除目录
+                fs.rmSync(filePath, { recursive: true, force: true });
+                res.json({ message: 'Directory deleted successfully' });
+            } else {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.error('Delete error:', err);
+                        return res.status(500).json({ error: 'Failed to delete file' });
+                    }
+                    res.json({ message: 'File deleted successfully' });
+                });
+            }
         } else {
             res.status(404).json({ error: 'File not found' });
         }
     } catch (error) {
         console.error('Delete error:', error);
         res.status(400).json({ error: error.message });
+    }
+});
+
+// 文件重命名
+app.put('/api/files/rename', authMiddleware, (req, res) => {
+    try {
+        const { oldPath, newName } = req.body;
+        if (!oldPath || !newName) {
+            return res.status(400).json({ error: 'Missing oldPath or newName' });
+        }
+        const oldFilePath = path.join(FILES_DIR, sanitizePath(oldPath));
+        const newFilePath = path.join(FILES_DIR, path.dirname(sanitizePath(oldPath)), newName);
+        if (!fs.existsSync(oldFilePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        fs.renameSync(oldFilePath, newFilePath);
+        res.json({ 
+            message: 'File renamed successfully',
+            newPath: path.join(path.dirname(oldPath), newName)
+        });
+    } catch (error) {
+        console.error('Rename error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 文件移动
+app.put('/api/files/move', authMiddleware, (req, res) => {
+    try {
+        const { oldPath, targetDir } = req.body;
+        if (!oldPath || !targetDir) {
+            return res.status(400).json({ error: 'Missing oldPath or targetDir' });
+        }
+        const oldFilePath = path.join(FILES_DIR, sanitizePath(oldPath));
+        const fileName = path.basename(oldFilePath);
+        const newFilePath = path.join(FILES_DIR, sanitizePath(targetDir), fileName);
+        if (!fs.existsSync(oldFilePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        if (!fs.existsSync(path.join(FILES_DIR, sanitizePath(targetDir)))) {
+            return res.status(400).json({ error: 'Target directory does not exist' });
+        }
+        fs.renameSync(oldFilePath, newFilePath);
+        res.json({ 
+            message: 'File moved successfully',
+            newPath: path.join(targetDir, fileName)
+        });
+    } catch (error) {
+        console.error('Move error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 创建文件夹
+app.post('/api/create-folder', authMiddleware, (req, res) => {
+    try {
+        const { subdir, folderPath } = req.body;
+        if (!folderPath) return res.status(400).json({ error: 'Missing folderPath' });
+        const baseDir = subdir ? path.join(FILES_DIR, sanitizePath(subdir)) : FILES_DIR;
+        const targetDir = path.join(baseDir, sanitizePath(folderPath));
+        fs.mkdirSync(targetDir, { recursive: true });
+        res.json({ message: 'Folder created successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
