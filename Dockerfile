@@ -1,7 +1,6 @@
 FROM node:alpine
 
-WORKDIR /files-system
-
+WORKDIR /app
 COPY . .
 
 EXPOSE 9999
