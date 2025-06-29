@@ -11,7 +11,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 9999;
 const USERNAME = process.env.USERNAME || 'admin';
-const PASSWOORD = process.env.PASSWOORD || 'admin';
+const PASSWORD = process.env.PASSWORD || 'admin';
 
 const FILES_DIR = path.join(__dirname, 'files');
 
@@ -44,7 +44,7 @@ function sanitizePath(relPath) {
 
 // Basic Auth 配置
 const authMiddleware = basicAuth({
-    users: { [USERNAME]: PASSWOORD },
+    users: { [USERNAME]: PASSWORD },
     challenge: true,
     unauthorizedResponse: 'Unauthorized Access'
 });
@@ -285,9 +285,9 @@ app.listen(PORT, () => {
     console.log('Environment variables loaded:', {
         PORT: process.env.PORT,
         USERNAME: process.env.USERNAME ? 'set' : 'using default',
-        PASSWOORD: process.env.PASSWOORD ? 'set' : 'using default'
+        PASSWORD: process.env.PASSWORD ? 'set' : 'using default'
     });
     console.log(`Files directory: ${FILES_DIR}`);
-    console.log(`Basic Auth credentials: ${USERNAME}/${PASSWOORD}`);
+    console.log(`Basic Auth credentials: ${USERNAME}/${PASSWORD}`);
     console.log(`Server is running on http://localhost:${PORT}`);
 });
