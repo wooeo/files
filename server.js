@@ -87,15 +87,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // 获取文件列表
-app.get('/api/files', authMiddleware, (req, res) => {
+app.get('/api/files', (req, res) => {
     const subdir = req.query.subdir || '';
     const targetDir = subdir ? path.join(FILES_DIR, subdir) : FILES_DIR;
-    
     fs.readdir(targetDir, { withFileTypes: true }, (err, files) => {
         if (err) {
             return res.status(500).json({ error: 'Unable to read directory' });
         }
-
         const fileList = files.map(file => {
             let name = file.name;
             const filePath = path.join(targetDir, name);
@@ -111,7 +109,6 @@ app.get('/api/files', authMiddleware, (req, res) => {
                 downloadUrl: !isDirectory ? `${req.protocol}://${req.get('host')}/download/${encodeURIComponent(relativePath)}` : null
             };
         });
-
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify(fileList, null, 2));
     });
@@ -234,23 +231,33 @@ app.put('/api/files/rename', authMiddleware, (req, res) => {
 // 文件移动
 app.put('/api/files/move', authMiddleware, (req, res) => {
     try {
-        const { oldPath, targetDir } = req.body;
-        if (!oldPath || !targetDir) {
+        let { oldPath, targetDir } = req.body;
+        if (!oldPath || targetDir === undefined || targetDir === null) {
             return res.status(400).json({ error: 'Missing oldPath or targetDir' });
+        }
+        // 允许空字符串、'/'、'根目录' 视为根目录
+        if (targetDir === '' || targetDir === '/' || targetDir === '根目录') {
+            targetDir = '';
         }
         const oldFilePath = path.join(FILES_DIR, sanitizePath(oldPath));
         const fileName = path.basename(oldFilePath);
-        const newFilePath = path.join(FILES_DIR, sanitizePath(targetDir), fileName);
+        // 根目录时不要sanitizePath("")
+        const newFilePath = targetDir
+            ? path.join(FILES_DIR, sanitizePath(targetDir), fileName)
+            : path.join(FILES_DIR, fileName);
         if (!fs.existsSync(oldFilePath)) {
             return res.status(404).json({ error: 'File not found' });
         }
-        if (!fs.existsSync(path.join(FILES_DIR, sanitizePath(targetDir)))) {
+        const targetDirPath = targetDir
+            ? path.join(FILES_DIR, sanitizePath(targetDir))
+            : FILES_DIR;
+        if (!fs.existsSync(targetDirPath)) {
             return res.status(400).json({ error: 'Target directory does not exist' });
         }
         fs.renameSync(oldFilePath, newFilePath);
-        res.json({ 
+        res.json({
             message: 'File moved successfully',
-            newPath: path.join(targetDir, fileName)
+            newPath: targetDir ? path.join(targetDir, fileName) : fileName
         });
     } catch (error) {
         console.error('Move error:', error);
