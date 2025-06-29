@@ -18,7 +18,7 @@ File System 是一个简洁高效的文件管理系统，支持文件上传、�
 |-----------|--------------------|----------|
 | PORT      | 服务监听端口       | 9999     |
 | USERNAME  | 登录用户名         | admin    |
-| PASSWORD  | 登录密码           | admin    |
+| PASSWORD  | 登录密码          | admin    |
 
 ## 源代码部署
 
@@ -39,6 +39,9 @@ File System 是一个简洁高效的文件管理系统，支持文件上传、�
    - 默认用户名/密码：`admin` / `admin`
 
 ## Docker 部署
+```
+ghcr.io/eooce/file-system:latest
+```
 
 ### 1. 直接运行
 ```bash
@@ -46,7 +49,7 @@ docker run -d \
   --name file-system \
   -p 9999:9999 \
   -v /your/local/files:/app/files \
-  eooce/file-system:latest
+  ghcr.io/eooce/file-system:latest
 ```
 - 说明：将主机目录 `/your/local/files` 挂载到容器内 `/app/files`，实现数据持久化。
 
@@ -57,7 +60,7 @@ docker run -d \
 version: '3'
 services:
   file-system:
-    image: eooce/file-system:latest
+    image: ghcr.io/eooce/file-system:latest
     container_name: file-system
     ports:
       - "9999:9999"
