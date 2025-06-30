@@ -83,9 +83,6 @@ docker-compose up -d
 - 浏览器访问：[http://localhost:9999](http://localhost:9999)
 - 默认用户名/密码：`admin` / `admin`
 
-## 协议
-
-本项目基于 [MIT License](./LICENSE) 开源，欢迎自由使用和二次开发。
 
 ## API 说明
 
@@ -137,6 +134,11 @@ docker-compose up -d
 ### 7. 获取所有子目录
 - `GET /api/subdirs`
   - 响应：`["videos", "audios", "pictures", "documents", "others"]`
+
+
+## 协议
+
+本项目基于 [MIT License](./LICENSE) 开源，欢迎自由使用和二次开发。
 
 ---
 
