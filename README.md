@@ -49,10 +49,10 @@ ghcr.io/eooce/file-system:latest
 docker run -d \
   --name file-system \
   -p 9999:9999 \
-  -v /your/local/files:/app/files \
+  -v /app/files:/app/files \
   ghcr.io/eooce/file-system:latest
 ```
-- 说明：将主机目录 `/your/local/files` 挂载到容器内 `/app/files`，实现数据持久化。
+- 说明：将主机目录 `/app/files` 挂载到容器内 `/app/files`，实现数据持久化。
 
 ### 2. docker-compose 部署
 
