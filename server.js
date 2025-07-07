@@ -86,6 +86,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// CORS 中间件
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 // 获取文件列表
 app.get('/api/files', (req, res) => {
     const subdir = req.query.subdir || '';
