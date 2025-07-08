@@ -1,9 +1,9 @@
 FROM node:alpine
 
-WORKDIR /app
+WORKDIR /tmp
 COPY . .
 
-EXPOSE 9999
+EXPOSE 7860
 
 RUN apk update && apk upgrade &&\
     apk add --no-cache unzip zip wget curl git screen &&\
