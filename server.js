@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 9999;
 const USERNAME = process.env.USERNAME || 'admin';
 const PASSWORD = process.env.PASSWORD || 'admin';
 
-const FILES_DIR = path.join(__dirname, '.tmp');
+const FILES_DIR = path.join(__dirname, 'files');
 
 // 确保 files 目录和子目录存在
 function ensureDirectories() {
